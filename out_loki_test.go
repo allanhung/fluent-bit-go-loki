@@ -12,11 +12,12 @@ import (
 )
 
 func TestCreateJSON(t *testing.T) {
-	record := make(map[interface{}]interface{})
+  al := "kubernetes"
+  record := make(map[interface{}]interface{})
 	record["key"] = "value"
 	record["number"] = 8
 
-	line, err := createJSON(record)
+	_, line, err := createJSON(al, record)
 	if err != nil {
 		assert.Fail(t, "createJSON fails:%v", err)
 	}
@@ -60,6 +61,8 @@ func (p *testFluentPlugin) PluginConfigKey(ctx unsafe.Pointer, key string) strin
 		return p.batchSize
 	case "Labels":
 		return `{job="fluent-bit"}`
+	case "AutoLabel":
+		return "kubernetes"
 	case "LogLevel":
 		return "info"
 	}

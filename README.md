@@ -63,6 +63,7 @@ $ make
 | BatchWait     | Time to wait before send a log batch to Loki, full or not. (unit: sec) | 1 second                     |
 | BatchSize     | Log batch size to send a log batch to Loki (unit: Bytes)    | 10 KiB (10*1024 Bytes)                            |
 | Labels        | labels for API requests                       | job="fluent-bit" (describe below)   |
+| AutoLabel     | Extract kubernetes metadata with key fields to Loki Label  | kubernetest-bit"                    |
 | LogLevel      | Specify log level                             | info                                |
 
 Example:
@@ -77,6 +78,7 @@ add this section to fluent-bit.conf
     BatchWait 10 # (10msec)
     BatchSize 30 # (30KiB)
     Labels {test="fluent-bit-go",lang="Golang"}
+    AutoLabel kubernetes
 ```
 
 ## Useful links
