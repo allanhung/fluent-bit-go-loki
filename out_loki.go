@@ -137,7 +137,7 @@ func FLBPluginFlush(data unsafe.Pointer, length C.int, tag *C.char) int {
 			timestamp = time.Now()
 		}
 
-		line, err := createJSON(record)
+		line, err := createJSON(ls, record)
 		if err != nil {
 			level.Error(logger).Log("msg", "error creating message for Grafana Loki", "error", err)
 			continue
@@ -158,22 +158,31 @@ func FLBPluginFlush(data unsafe.Pointer, length C.int, tag *C.char) int {
 	return output.FLB_OK
 }
 
-func createJSON(record map[interface{}]interface{}) (string, error) {
+func createJSON(labelkey string, record map[interface{}]interface{}) (string, string, error) {
+	var kuberlabel string = labelkey
 	m := make(map[string]interface{})
 
 	for k, v := range record {
-		switch t := v.(type) {
-		case []byte:
-			// prevent encoding to base64
-			m[k.(string)] = string(t)
-		default:
-			m[k.(string)] = v
+		if k.(string) == labelkey {
+			labels, err := jsoniter.Marshal(v)
+			if err != nil {
+				return kuberlabel, "{}", err
+			}
+			kuberlabel = string(labels)
+		} else {
+			switch t := v.(type) {
+			case []byte:
+				// prevent encoding to base64
+				m[k.(string)] = string(t)
+			default:
+				m[k.(string)] = v
+			}
 		}
 	}
 
 	js, err := jsoniter.Marshal(m)
 	if err != nil {
-		return "{}", err
+		return "", "{}", err
 	}
 
 	return string(js), nil
