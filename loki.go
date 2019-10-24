@@ -19,10 +19,11 @@ type lokiConfig struct {
 	batchWait time.Duration
 	batchSize int
 	labelSet  model.LabelSet
+	autoLabel string
 	logLevel  logging.Level
 }
 
-func getLokiConfig(url string, batchWait string, batchSize string, labels string, logLevelVal string) (*lokiConfig, error) {
+func getLokiConfig(url string, batchWait string, batchSize string, labels string, autoLabel string, logLevelVal string) (*lokiConfig, error) {
 	lc := &lokiConfig{}
 	var clientURL flagext.URLValue
 	if url == "" {
@@ -60,6 +61,11 @@ func getLokiConfig(url string, batchWait string, batchSize string, labels string
 		labelSet[model.LabelName(m.Name)] = model.LabelValue(m.Value)
 	}
 	lc.labelSet = labelSet
+
+	if autoLabel == "" {
+		autoLabel = "kubernetes"
+	}
+	lc.autoLabel = autoLabel
 
 	if logLevelVal == "" {
 		logLevelVal = "info"
