@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -15,19 +16,20 @@ import (
 )
 
 type lokiConfig struct {
-	url       flagext.URLValue
-	batchWait time.Duration
-	batchSize int
-	labelSet  model.LabelSet
-	autoLabel string
-	logLevel  logging.Level
+	url        flagext.URLValue
+	batchWait  time.Duration
+	batchSize  int
+	labelSet   model.LabelSet
+	logLevel   logging.Level
+	removeKeys []string
+	labelKeys  []string
 }
 
-func getLokiConfig(url string, batchWait string, batchSize string, labels string, autoLabel string, logLevelVal string) (*lokiConfig, error) {
+func getLokiConfig(url, batchWait, batchSize, labels, logLevelVal, removeKeyStr, labelKeyStr string) (*lokiConfig, error) {
 	lc := &lokiConfig{}
 	var clientURL flagext.URLValue
 	if url == "" {
-		url = "http://localhost:3100/api/prom/push"
+		url = "http://localhost:3100/loki/api/v1/push"
 	}
 	err := clientURL.Set(url)
 	if err != nil {
@@ -51,21 +53,15 @@ func getLokiConfig(url string, batchWait string, batchSize string, labels string
 		labels = `{job="fluent-bit"}`
 	}
 
-	ls, err := logql.ParseExpr(labels)
+	matchers, err := logql.ParseMatchers(labels)
 	if err != nil {
 		return nil, err
 	}
-	matchers := ls.Matchers()
 	labelSet := make(model.LabelSet)
 	for _, m := range matchers {
 		labelSet[model.LabelName(m.Name)] = model.LabelValue(m.Value)
 	}
 	lc.labelSet = labelSet
-
-	if autoLabel == "" {
-		autoLabel = "kubernetes"
-	}
-	lc.autoLabel = autoLabel
 
 	if logLevelVal == "" {
 		logLevelVal = "info"
@@ -75,6 +71,18 @@ func getLokiConfig(url string, batchWait string, batchSize string, labels string
 		return nil, fmt.Errorf("invalid log level: %v", logLevel)
 	}
 	lc.logLevel = logLevel
+
+	if removeKeyStr != "" {
+		regex := regexp.MustCompile(`\s*,\s*`)
+		lc.removeKeys = regex.Split(removeKeyStr, -1)
+	}
+
+	if labelKeyStr != "" {
+		regex := regexp.MustCompile(`\s*,\s*`)
+		lc.labelKeys = regex.Split(labelKeyStr, -1)
+	} else {
+		lc.labelKeys = []string{"job", "instance"}
+	}
 
 	return lc, nil
 }
